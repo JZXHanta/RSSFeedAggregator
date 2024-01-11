@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/JZXHanta/RSSFeedAggregator/internal/database"
 	"github.com/go-chi/chi"
@@ -60,6 +61,12 @@ func main() {
 	v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handlerFeedCreate))
 	v1Router.Get("/feeds", apiCfg.handlerGetFeeds)
 
+	v1Router.Get("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowsGet))
+	v1Router.Post("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowCreate))
+	v1Router.Delete("/feed_follows/{feedFollowID}", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowDelete))
+
+	v1Router.Get("/posts", apiCfg.middlewareAuth(apiCfg.handlerPostsGet))
+
 	v1Router.Get("/healthz", handlerReadiness)
 	v1Router.Get("/err", handlerErr)
 
@@ -68,6 +75,10 @@ func main() {
 		Addr:    ":" + port,
 		Handler: router,
 	}
+
+	const collectionConcurrency = 10
+	const collectionInterval = time.Minute
+	go startScraping(dbQueries, collectionConcurrency, collectionInterval)
 
 	log.Printf("Serving on port: %s\n", port)
 	log.Fatal(srv.ListenAndServe())
